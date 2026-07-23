@@ -1,11 +1,11 @@
 # Grading Methodology Specification
 
-**Version:** `1.0.0`
+**Version:** `1.0.1`
 
 ## Status
 
 - Status: Draft
-- Rubric version: `1.0.0`
+- Rubric version: `1.0.1`
 - Applies to: issues, pull requests, review consensus, and release quality
 - Primary objective: make code-quality decisions repeatable without rewarding cosmetic work or subjective nitpicking
 
@@ -144,23 +144,30 @@ Issue grading occurs during triage, before implementation review.
 Every check requires `yes` and cited evidence. Any `no` result makes the issue
 `UNGRADED` and prevents it from authorizing a non-exempt PR.
 
-| ID   | Binary check                                                                                           | Required evidence                                                            |
-| ---- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| IE-1 | Is the problem or opportunity stated without prescribing an unverified implementation?                 | Issue summary                                                                |
-| IE-2 | Is there direct evidence?                                                                              | Reproduction, incident, metric, user request, source invariant, or benchmark |
-| IE-3 | Is the consequence stated?                                                                             | The wrong behavior, cost, risk, or missed capability                         |
-| IE-4 | Is the scope bounded?                                                                                  | Explicit in-scope and out-of-scope boundaries                                |
-| IE-5 | Are completion criteria binary and observable?                                                         | Acceptance criteria                                                          |
-| IE-6 | Is the required regression proof identified?                                                           | Test, check, benchmark, or runtime observation                               |
-| IE-7 | Is the work tied to a current product, release, reliability, security, or technical-quality objective? | Objective identifier or named objective                                      |
-| IE-8 | Is a 2–3 sentence grade rationale present?                                                             | `Grade rationale` section                                                    |
-| IE-9 | Has duplicate or intentional-overlap status been checked?                                              | Search result or linked related issue                                        |
+| ID   | Binary check                                                                                          | Required evidence                                                            |
+| ---- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| IE-1 | Is the problem or opportunity stated without prescribing an unverified implementation?                | Issue summary                                                                |
+| IE-2 | Is there direct evidence?                                                                             | Reproduction, incident, metric, user request, source invariant, or benchmark |
+| IE-3 | Is the consequence stated, including an explicit `none` for a non-consequential request?              | Consequence evidence, or a cited request with `consequence: none`            |
+| IE-4 | Is the scope bounded?                                                                                 | Explicit in-scope and out-of-scope boundaries                                |
+| IE-5 | Are completion criteria binary and observable?                                                        | Acceptance criteria                                                          |
+| IE-6 | Is the required regression proof identified?                                                          | Test, check, benchmark, or runtime observation                               |
+| IE-7 | Is the work tied to a current objective, or is it a recorded administrative request using the D path? | Objective identifier, named objective, or request link                       |
+| IE-8 | Is a 2–3 sentence grade rationale present?                                                            | `Grade rationale` section                                                    |
+| IE-9 | Has duplicate or intentional-overlap status been checked?                                             | Search result or linked related issue                                        |
 
 The rationale MUST answer:
 
 1. Why does this matter now?
-2. What material decision or outcome changes if it is resolved?
+2. What material decision or outcome changes if it is resolved, or why does
+   none change for a D candidate?
 3. Why does the selected value grade follow from the rules below?
+
+IE-3 MUST NOT be satisfied by a fabricated impact. A request with no material
+consequence MAY record `consequence: none` and cite the underlying request.
+That request MAY also satisfy IE-7 without a broader objective. These
+alternatives are available only through the D path and force issue grade D
+when the remaining eligibility checks pass.
 
 ### 5.2 Issue severity
 
@@ -198,7 +205,7 @@ difficult.
 ### 5.4 Required issue record
 
 ```yaml
-rubric_version: 1.0.0
+rubric_version: 1.0.1
 eligibility:
   IE-1: { answer: yes, evidence: "Problem section" }
   IE-2: { answer: yes, evidence: "Reproduction output" }
@@ -437,16 +444,19 @@ change and MUST NOT be hidden inside a feature PR.
 | ---- | -------------------------- | ---------------------------------------------------------------------------------------------------- |
 | RT-1 | Build and type safety      | No new build, lint, or type error relative to baseline                                               |
 | RT-2 | Test integrity             | No new skipped, focused-only, quarantined, or ignored failing test                                   |
-| RT-3 | Behavioral coverage        | Changed behavior and material failure path have executing assertions                                 |
 | RT-4 | Coverage floor             | Changed scope meets its configured floor and project/package coverage does not cross below its floor |
 | RT-5 | Complexity ceiling         | No touched function newly crosses the ceiling; existing hotspot does not worsen                      |
 | RT-6 | Duplicate-rule signal      | No new duplicated block is accepted without reviewer classification and evidence                     |
 | RT-7 | Dependency policy          | Every new runtime dependency has capability, ownership, and security justification                   |
 | RT-8 | Public contract validation | Public configuration/API changes have schema, compatibility, docs, and behavioral tests              |
 
+`RT-3` is intentionally unused in rubric 1.0.1. Behavioral proof is evaluated
+by reviewers under SG-5 because a tool cannot determine whether assertions
+prove the intended contract. Tools MAY emit test-execution evidence for SG-5,
+but that evidence is not itself a machine ratchet.
+
 Coverage percentage and duplication percentage are signals, not proof of test
-quality or design quality. RT-3 remains a human-verifiable gate because a tool
-cannot determine whether assertions prove the intended contract.
+quality or design quality.
 
 ### 10.3 Ratchet exceptions
 
@@ -482,7 +492,7 @@ the other review.
 ### 11.2 Required reviewer output
 
 ```yaml
-rubric_version: 1.0.0
+rubric_version: 1.0.1
 reviewer: reviewer-id
 issue_grade: A
 ship_gate:
@@ -610,15 +620,16 @@ Equivalently:
 This grade measures the value/quality portfolio selected for the release. It
 does not replace the project health grade.
 
-### 12.3 Overall release and project grade
+### 12.3 Release reporting and current project grade
 
 ```text
-overall_release_grade = worse(project_health_grade, release_portfolio_grade)
-current_project_grade = overall_release_grade
+current_project_grade = project_health_grade
 ```
 
-This ensures B/C/D work remains allowed but visibly affects the overall grade.
-It also prevents high-volume A work from averaging away one lower-grade PR.
+The delivery-value portfolio grade MUST be reported alongside project health,
+but MUST NOT be combined with it or used as a proxy for code quality. This
+keeps B/C/D-value work visible without treating a well-executed lower-value PR
+as a project-health regression.
 
 Every release reports its distribution and derived grades:
 
@@ -632,17 +643,18 @@ slop_delta:
 exceptions: { active: 0, expired: 0 }
 project_health_grade: A
 release_portfolio_grade: C
-overall_release_grade: C
+current_project_grade: A
 ```
 
 GPA MAY be displayed as a secondary summary, but MUST NOT determine the project
-health, portfolio, or overall grade or override their ceilings.
+health or portfolio grade or override their ceilings.
 
 ### 12.4 Release ratchet
 
-A release MUST NOT reduce the project health grade or overall release grade
-without an explicit release exception. The exception MUST name the material
-reason, affected grade rule, owner, and recovery issue.
+A release MUST NOT reduce the project health grade without an explicit release
+exception. The exception MUST name the material reason, affected grade rule,
+owner, and recovery issue. The delivery-value portfolio grade is reported but
+is not ratcheted.
 
 An exception records regression; it does not redefine the lower grade as a
 higher one.
@@ -726,7 +738,9 @@ reject manually inconsistent letter grades.
 ### 14.4 Cosmetic request
 
 - The only justification is that one naming or formatting form is preferred.
-- Result: eligible issue D if the rationale and scope are complete.
+- IE-2 cites the request; IE-3 records `consequence: none`; the rationale states
+  that no material decision or outcome changes.
+- Result: eligible issue D if the remaining eligibility checks pass.
 - Cosmetic review comments remain excluded from the ship gate.
 
 ### 14.5 Orphan PR
