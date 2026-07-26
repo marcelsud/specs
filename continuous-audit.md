@@ -1,6 +1,6 @@
 # Continuous Audit Specification
 
-**Version:** `1.0.0`
+**Version:** `1.1.0`
 
 ## Status
 
@@ -25,8 +25,9 @@ This specification defines a repeatable audit loop that:
 - records every finding's disposition, including rejections, so the loop converges;
 - treats a run that finds nothing as a successful run.
 
-It is agent-agnostic. Any agent that can read a prompt, execute the project's own commands,
-and write a file to a specified path can conform.
+It is agent-agnostic and agent-driven: the agent is the top-level process and invokes a
+project-supplied tool for every deterministic step (section 10). Any agent that can run a command
+and write a file can conform, without a per-agent adapter.
 
 ## 2. Normative language
 
@@ -60,12 +61,13 @@ reproduction work that should have prevented them.
 
 ### 3.3 Evidence precedes filing
 
-A candidate finding MUST NOT be filed as an issue until its reproduction has been executed and
-its observed output recorded. A reasoned argument that a defect exists is not a reproduction.
+A candidate finding MUST NOT be filed as an issue until its reproduction has been executed **by
+the tool** and observed to fail at the commit under audit (section 7.2). A reasoned argument that
+a defect exists is not a reproduction, and neither is an agent's report of having run one.
 
 ### 3.4 The agent does not choose its own target
 
-The topic under audit MUST be selected by the harness from recorded history and supplied to the
+The topic under audit MUST be selected by the tool from recorded history and supplied to the
 agent. An agent that selects its own target will drift toward areas it finds legible, and the
 resulting coverage cannot be measured.
 
@@ -154,7 +156,7 @@ genuinely sound or framed too vaguely to audit.
 
 ### 6.1 Weighting
 
-The harness MUST select the topic by weighted random sampling, with weight:
+The tool MUST select the topic by weighted random sampling, with weight:
 
 ```text
 weight(topic) = staleness(topic) × (1 + churn(topic))
@@ -169,7 +171,7 @@ defects are: recent change.
 
 ### 6.2 Determinism
 
-The harness MUST record the random seed used for selection in the topic-history entry. Given
+The tool MUST record the random seed used for selection in the topic-history entry. Given
 the same ledger, the same commit, and the same seed, selection MUST produce the same topic.
 
 ### 6.3 New topics
@@ -183,38 +185,55 @@ newly registered topics are audited before previously covered ones.
 
 A run MUST proceed in this order:
 
-1. **Select** — the harness picks the topic (section 6) and records the commit under audit.
+1. **Select** — the tool picks the topic (section 6), records the commit under audit, and opens
+   the run.
 2. **Examine** — the agent examines the topic's paths against its objectives and proposes
    candidate findings.
-3. **Deduplicate** — candidates are checked against the ledger (section 8). Matches are
+3. **Deduplicate** — the tool checks candidates against the ledger (section 8). Matches are
    recorded and dropped before any further work.
-4. **Reproduce** — each surviving candidate MUST be reproduced (section 7.2).
-5. **Grade** — each reproduced candidate is written as an issue record and graded (section 7.3).
-6. **File** — candidates that pass grading are filed.
-7. **Record** — all dispositions and one topic-history entry are appended to the ledger.
+4. **Reproduce** — the tool runs each surviving candidate's reproduction (section 7.2).
+5. **Grade** — each reproduced candidate is graded as an issue record (section 7.3).
+6. **File** — the tool files candidates that passed grading.
+7. **Record** — the tool appends all dispositions and one topic-history entry, closing the run.
+
+Stages 3 through 7 are tool operations, invoked by the agent (section 10.1). Only stage 2 is the
+agent's own work.
 
 Deduplication MUST precede reproduction. Reproduction is the most expensive stage, and spending
 it on a known finding is waste.
 
 ### 7.2 Reproduction gate
 
-For each surviving candidate the agent MUST produce evidence satisfying IE-2 of the Grading
-Methodology: a reproduction, incident, metric, source invariant, or benchmark, with its observed
-output recorded verbatim.
+For each surviving candidate the agent MUST supply an **executable reproduction**: a command the
+tool can run unattended at the commit under audit.
 
-The reproduction MUST be executed at the commit under audit and MUST distinguish the claimed
-defective behavior from correct behavior. Evidence that would be produced identically by a
-correct implementation does not satisfy this gate.
+The tool MUST run that command itself and MUST NOT rely on output the agent reports. An agent
+transcript is a claim about a reproduction, not the reproduction. Verifying independently is the
+only mechanism in this specification that distinguishes a demonstrated defect from a plausible
+argument for one.
 
-A candidate whose reproduction does not demonstrate the claimed condition MUST be recorded as
-`unproven` or `not-current` and MUST NOT be filed.
+The command MUST **fail** at the commit under audit. A reproduction that succeeds does not
+demonstrate a defect; it demonstrates working software. This makes the gate mechanically
+decidable, so no judgement is required to reject a candidate.
+
+A candidate whose command does not run, or runs and succeeds, MUST be recorded as `unproven` or
+`not-current` and MUST NOT be filed.
+
+Evidence that would be produced identically by a correct implementation does not satisfy this
+gate. A command that fails for a reason unrelated to the claim — a missing dependency, a syntax
+error, an unrelated pre-existing failure — is not a reproduction.
+
+This is deliberately narrower than IE-2, which also admits incidents, metrics, source invariants,
+and benchmarks. Findings that cannot be expressed as a failing command are out of scope for an
+automated run. That trades recall for precision, and the trade is intentional: an unattended loop
+that files unverifiable findings consumes more review capacity than it creates.
 
 ### 7.3 Grading gate
 
 Each reproduced candidate MUST be written as a complete issue record per section 5.4 of the
 Grading Methodology and evaluated against the eligibility gate IE-1 through IE-9.
 
-Where the consuming project provides an executable grader, the harness MUST use it and MUST
+Where the consuming project provides an executable grader, the tool MUST use it and MUST
 treat its output as authoritative. A candidate that does not reach the project's configured
 minimum grade MUST be recorded as `ineligible` and MUST NOT be filed.
 
@@ -327,47 +346,80 @@ the candidate was rejected.
 Ledger writes MUST be append-only. A correction MUST be recorded as a new entry that supersedes
 the prior one, not as an edit. Runs MUST NOT rewrite history.
 
-## 10. Output contract
+## 10. Invocation contract
 
-### 10.1 The artifact
+### 10.1 Topology
 
-The interface between agent and harness is a file, not a conversation. The harness supplies an
-output path; the agent writes a conforming artifact and exits.
+The loop is **agent-driven**. The agent is the top-level process; the project provides a **tool**
+the agent invokes for every deterministic step. Nothing spawns or supervises the agent.
 
-The artifact MUST contain, for each candidate:
+The alternative — a harness that spawns agents and reads what they leave behind — requires
+per-vendor adapters, subprocess supervision, and timeout and retry handling, none of which
+concerns auditing. Inverting the control flow removes that category of work entirely, and any
+agent able to run a command conforms without an adapter.
+
+The tool MUST expose at least these operations:
+
+| Operation | Responsibility                                                              |
+| --------- | --------------------------------------------------------------------------- |
+| `start`   | Select the topic (section 6), open a run, report topic, run identifier, seed |
+| `check`   | Fingerprint, deduplicate (section 8), verify reproduction (7.2), grade (7.3) |
+| `file`    | Create the issue for a candidate that passed `check`                         |
+| `finish`  | Append the run's dispositions and topic-history entry, then close the run    |
+
+Candidates are passed as files. That keeps the contract agent-agnostic: no part of it depends on
+a tool vocabulary, session model, or orchestration framework.
+
+### 10.2 The candidate artifact
+
+A candidate MUST contain:
 
 - the issue record required by section 5.4 of the Grading Methodology;
 - the proposed issue body;
-- the reproduction command and its verbatim observed output;
+- an executable reproduction command (section 7.2);
 - `path`, `consequence_category`, and `normalized_claim` for fingerprinting.
 
-This is what makes the loop agent-agnostic. No part of the contract depends on a particular
-tool vocabulary, session model, or orchestration framework.
+### 10.3 Separation of authority
 
-### 10.2 Agent conformance
+**The agent decides what to examine and what to claim. The tool decides what is allowed to leave
+the machine.**
+
+Every effect observable outside the run — creating an issue, writing the ledger — MUST be
+performed by the tool and MUST be gated on state the tool itself recorded.
+
+In particular, `file` MUST refuse any candidate that has not passed `check` **within the current
+run**, and MUST determine that from its own records rather than from anything the agent asserts.
+
+An agent-driven loop cannot assume a cooperative agent. An agent that skipped verification, or
+that believes it already verified, is indistinguishable from one that did — unless the gate is
+enforced by state the agent does not author.
+
+### 10.4 Run integrity
+
+A run that begins MUST be accounted for, including when the agent crashes, is interrupted, or
+abandons it.
+
+The tool MUST record the outcome of every started run. Because no process supervises the agent,
+it MUST detect an abandoned run — one started and never finished — and record it as
+`outcome: failed` before opening a new one.
+
+An abandoned run MUST NOT be recorded as `completed`, and its topic MUST retain its prior
+staleness. An agent that terminated without finishing is indistinguishable, from the ledger's
+point of view, from one that examined the topic and found nothing — but recording the former as
+completed marks the topic audited, removes it from selection pressure, and silently creates a
+permanent coverage hole.
+
+### 10.5 Agent conformance
 
 A conforming agent MUST:
 
-- audit only the supplied topic;
-- execute reproductions rather than assert them;
-- write a conforming artifact to the supplied path, including when it has no findings;
-- exit without filing issues, pushing branches, or modifying the ledger.
+- audit only the topic reported by `start`;
+- supply an executable reproduction rather than a description of one;
+- submit every candidate through `check`;
+- invoke `finish` for the run, including when it has no findings;
+- create no issue, branch, or ledger entry by any means other than the tool.
 
-Filing and recording are harness responsibilities. An agent that files its own findings bypasses
-the grading and deduplication gates.
-
-### 10.3 Harness obligations
-
-The harness MUST:
-
-- treat a missing, empty, or non-conforming artifact as a **failed run**, never as a dry run;
-- retry a failed run a bounded number of times, then record `outcome: failed` and stop;
-- validate every artifact against the grading gate before filing anything.
-
-The distinction in the first rule is load-bearing. An agent that terminates without producing an
-artifact is indistinguishable, at the harness level, from an agent that examined the topic and
-found nothing — but recording the former as a dry run marks the topic audited and removes it
-from selection pressure, silently creating a permanent coverage hole.
+Reporting no findings is conformant and successful (section 3.2).
 
 ## 11. Scheduling
 
