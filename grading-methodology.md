@@ -1,11 +1,11 @@
 # Grading Methodology Specification
 
-**Version:** `1.0.1`
+**Version:** `1.1.0`
 
 ## Status
 
 - Status: Draft
-- Rubric version: `1.0.1`
+- Rubric version: `1.1.0`
 - Applies to: issues, pull requests, review consensus, and release quality
 - Primary objective: make code-quality decisions repeatable without rewarding cosmetic work or subjective nitpicking
 
@@ -135,6 +135,53 @@ categories:
 Equivalent wording MAY be used in a finding, but its evidence MUST map to at
 least one category above. A preference that cannot be mapped does not count.
 
+### 4.7 Project configuration
+
+A project adopting this methodology MUST publish a configuration artifact
+declaring its rubric version, its objective registry, and its ratchet
+configuration. Section 10.1 already requires thresholds and exclusions to be
+versioned in repository configuration; this section names that artifact and
+fixes its required contents.
+
+The artifact MUST be versioned alongside the code it grades and MUST be
+readable by both reviewers and automated checks. Its location and file format
+are a project choice. This specification does not assume a hosting platform,
+directory layout, or configuration language.
+
+```yaml
+rubric_version: 1.1.0
+
+objectives:
+  DEL-1: >-
+    Delivery guarantees: documented delivery paths hold across the full
+    system boundary.
+  CON-1: >-
+    Documented component contracts behave as documented.
+
+ratchets:
+  RT-1:
+    check: "<command>"
+    enforcement: ci-blocking
+```
+
+### 4.8 Objective registry
+
+The objective registry is the set of objectives declared in the project
+configuration. Each objective MUST declare a stable identifier and a statement
+of the guarantee it protects.
+
+- IE-7 is satisfied by citing an identifier present in the registry at the time
+  of grading, or by the D path in section 5.1.
+- An issue citing an identifier absent from the registry does not satisfy IE-7.
+- Identifiers MUST be stable. A retired objective's identifier MUST NOT be
+  reused for a different guarantee, because stored grade records cite it and
+  those records are expected to remain explainable.
+- Adding, retiring, or restating an objective is a policy change and MUST
+  follow the same separate-review rule as section 10.1.
+
+The registry is project-specific by construction. This specification defines
+what an objective is and how it is cited; it does not enumerate objectives.
+
 ## 5. Issue grading
 
 Issue grading occurs during triage, before implementation review.
@@ -152,7 +199,7 @@ Every check requires `yes` and cited evidence. Any `no` result makes the issue
 | IE-4 | Is the scope bounded?                                                                                 | Explicit in-scope and out-of-scope boundaries                                |
 | IE-5 | Are completion criteria binary and observable?                                                        | Acceptance criteria                                                          |
 | IE-6 | Is the required regression proof identified?                                                          | Test, check, benchmark, or runtime observation                               |
-| IE-7 | Is the work tied to a current objective, or is it a recorded administrative request using the D path? | Objective identifier, named objective, or request link                       |
+| IE-7 | Is the work tied to a current objective, or is it a recorded administrative request using the D path? | Objective identifier from the registry (section 4.8), or request link        |
 | IE-8 | Is a 2–3 sentence grade rationale present?                                                            | `Grade rationale` section                                                    |
 | IE-9 | Has duplicate or intentional-overlap status been checked?                                             | Search result or linked related issue                                        |
 
@@ -205,7 +252,7 @@ difficult.
 ### 5.4 Required issue record
 
 ```yaml
-rubric_version: 1.0.1
+rubric_version: 1.1.0
 eligibility:
   IE-1: { answer: yes, evidence: "Problem section" }
   IE-2: { answer: yes, evidence: "Reproduction output" }
@@ -434,9 +481,10 @@ items.
 Ratchets compare the PR head with its merge base. Release ratchets compare the
 release candidate with the previous release baseline.
 
-Thresholds and exclusions MUST be versioned in repository configuration.
-Changing the baseline or exclusion list requires a separately reviewed policy
-change and MUST NOT be hidden inside a feature PR.
+Thresholds and exclusions MUST be versioned in the project configuration
+artifact defined in section 4.7. Changing the baseline or exclusion list
+requires a separately reviewed policy change and MUST NOT be hidden inside a
+feature PR.
 
 ### 10.2 Required ratchets
 
@@ -450,7 +498,7 @@ change and MUST NOT be hidden inside a feature PR.
 | RT-7 | Dependency policy          | Every new runtime dependency has capability, ownership, and security justification                   |
 | RT-8 | Public contract validation | Public configuration/API changes have schema, compatibility, docs, and behavioral tests              |
 
-`RT-3` is intentionally unused in rubric 1.0.1. Behavioral proof is evaluated
+`RT-3` is intentionally unused in rubric 1.1.0. Behavioral proof is evaluated
 by reviewers under SG-5 because a tool cannot determine whether assertions
 prove the intended contract. Tools MAY emit test-execution evidence for SG-5,
 but that evidence is not itself a machine ratchet.
@@ -492,7 +540,7 @@ the other review.
 ### 11.2 Required reviewer output
 
 ```yaml
-rubric_version: 1.0.1
+rubric_version: 1.1.0
 reviewer: reviewer-id
 issue_grade: A
 ship_gate:
