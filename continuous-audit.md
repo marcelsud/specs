@@ -6,7 +6,7 @@
 
 - Status: Draft
 - Applies to: automated and semi-automated discovery of gradeable issues in an existing codebase
-- Depends on: [Grading Methodology](./grading-methodology.md) `1.0.1`
+- Depends on: [Grading Methodology](./grading-methodology.md) `1.1.0`
 - Related: [Multi-Agent Review Agreement](./multi-agent-review-agreement.md) `1.0.0`
 - Primary objective: produce a sustained supply of eligible, evidence-backed issues without
   re-discovering resolved findings and without fabricating work
@@ -80,7 +80,8 @@ not in the ledger does not exist for the next run.
 ### 4.1 Topic
 
 A named, bounded audit target consisting of an identifier, one or more paths, and one or more
-objective identifiers from the consuming project's objective registry.
+identifiers from the consuming project's objective registry, as defined in section 4.8 of the
+Grading Methodology.
 
 A topic is a unit of attention, not a directory. It MAY span paths when the property under
 examination spans them.
@@ -118,25 +119,32 @@ that produced no candidates.
 
 ## 5. Topic registry
 
-The consuming project MUST maintain a topic registry. It MAY live in the project's existing
-grading configuration.
+The consuming project MUST maintain a topic registry. It SHOULD live in the project
+configuration artifact defined in section 4.7 of the Grading Methodology, alongside the
+objective registry the topics cite.
+
+The identifiers below are illustrative. Objective identifiers are project-specific; this
+specification does not define them.
 
 ```yaml
 topics:
-  - id: http-input-lifecycle
-    paths: [src/inputs/http-input.ts]
-    objectives: [REL-1, REL-2]
+  - id: input-lifecycle
+    paths: [src/inputs/]
+    objectives: [DEL-1, CON-1]
   - id: shutdown-drain
     paths: [src/core/pipeline.ts, src/inputs/]
-    objectives: [REL-1]
+    objectives: [DEL-1]
   - id: gate-trustworthiness
-    paths: [.github/grading/, tests/]
-    objectives: [TEST-1]
+    paths: [tests/]
+    objectives: [CON-1]
 ```
 
 Each entry MUST declare `id`, `paths`, and `objectives`. Every listed objective MUST exist in
-the project's objective registry, so that a finding under that topic can satisfy IE-7 by
-construction.
+the project's objective registry, as defined in section 4.8 of the Grading Methodology, so that
+a finding under that topic can satisfy IE-7 by construction.
+
+A topic whose objectives are absent from that registry MUST NOT be selected for a run: any
+finding it produced would fail IE-7 after the reproduction had already been paid for.
 
 Topics SHOULD be revised when the project's structure changes. A topic that has been audited
 repeatedly at high churn without ever producing a finding SHOULD be re-examined: it is either
@@ -375,7 +383,7 @@ a run. An explicitly named topic MUST still record a topic-history entry.
 
 ## 12. Relationship to other specifications
 
-- **Grading Methodology `1.0.1`** — supplies the eligibility gate (IE-1..IE-9), severity, value
+- **Grading Methodology `1.1.0`** — supplies the eligibility gate (IE-1..IE-9), severity, value
   grades, consequence categories, and the issue record. This specification adds only the
   conditions under which a candidate may reach that gate.
 - **Multi-Agent Review Agreement `1.0.0`** — governs review of the pull requests that resolve
