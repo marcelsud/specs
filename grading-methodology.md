@@ -1,11 +1,11 @@
 # Grading Methodology Specification
 
-**Version:** `1.1.0`
+**Version:** `1.1.1`
 
 ## Status
 
 - Status: Draft
-- Rubric version: `1.1.0`
+- Rubric version: `1.1.1`
 - Applies to: issues, pull requests, review consensus, and release quality
 - Primary objective: make code-quality decisions repeatable without rewarding cosmetic work or subjective nitpicking
 
@@ -149,7 +149,7 @@ are a project choice. This specification does not assume a hosting platform,
 directory layout, or configuration language.
 
 ```yaml
-rubric_version: 1.1.0
+rubric_version: 1.1.1
 
 objectives:
   DEL-1: >-
@@ -252,7 +252,7 @@ difficult.
 ### 5.4 Required issue record
 
 ```yaml
-rubric_version: 1.1.0
+rubric_version: 1.1.1
 eligibility:
   IE-1: { answer: yes, evidence: "Problem section" }
   IE-2: { answer: yes, evidence: "Reproduction output" }
@@ -540,7 +540,7 @@ the other review.
 ### 11.2 Required reviewer output
 
 ```yaml
-rubric_version: 1.1.0
+rubric_version: 1.1.1
 reviewer: reviewer-id
 issue_grade: A
 ship_gate:
@@ -624,6 +624,20 @@ portfolio.
 
 ### 12.1 Project health grade
 
+For this assessment, compare outstanding S2 debt at the release candidate
+with the recorded release baseline (section 4.5). Neutral means the same
+number of S2 entries; reduced means fewer; net added means more. Compare
+each tier separately, without canceling higher-tier debt with lower-tier
+removals.
+
+The common conditions for A and B are:
+
+- no D or C condition below holds;
+- all required ratchets pass;
+- no Blocker or S3 debt exists;
+- S2 debt is neutral or reduced relative to the release baseline;
+- included execution grades are A or B.
+
 Apply the first matching rule:
 
 1. **D** when any condition holds:
@@ -636,18 +650,19 @@ Apply the first matching rule:
    - a ratchet exception is active;
    - an S1 or S2 follow-up has expired;
    - a C execution PR is included.
-3. **B** when no D or C condition holds and:
-   - all required ratchets pass;
-   - no Blocker or S3 debt exists;
-   - S2 debt is neutral;
-   - included execution grades are A or B.
-4. **A** when all B conditions hold and:
+3. **A** when all common conditions hold and:
    - the release reduces S2 debt, or the baseline contains no S2 debt;
-   - no S1 introduced by the release remains present at the release baseline;
+   - no S1 introduced by the release remains present at the release candidate;
    - no required check depends on a known weak or false-positive assertion;
    - all included execution grades are A.
+4. **B** when all common conditions hold but at least one additional A
+   condition does not hold.
 
 One high-grade PR cannot numerically hide a Blocker or S3 condition.
+If the evidence does not establish a rule's conditions, do not infer a
+passing health grade. Missing required evidence remains `UNGRADED`;
+known failed gates remain failures and block release under their applicable
+rules, rather than becoming an automatic B.
 
 ### 12.2 Delivery-value portfolio grade
 
@@ -810,6 +825,17 @@ reject manually inconsistent letter grades.
 
 Every issue and PR grading record MUST store the rubric version used. Rubric
 changes apply prospectively unless a migration is explicitly approved.
+
+#### 1.1.1 correction
+
+Version 1.1.1 corrects the section 12.1 decision tree from 1.1.0: D and C
+retain priority, A is tested before the B fallback, and common A/B conditions
+allow neutral or reduced S2 debt. Outstanding release-introduced S1 is
+assessed at the release candidate, rather than at the earlier baseline.
+The remaining health criteria, ship gates, and separate delivery portfolio
+are preserved. Records frozen under 1.1.0 keep that version unless an
+explicit migration is approved; this correction does not silently regrade
+past reviews or change a consumer project's adopted rubric.
 
 ### 15.2 Calibration
 
