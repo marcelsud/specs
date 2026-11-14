@@ -7,7 +7,7 @@
 - Status: Draft
 - Applies to: automated and semi-automated discovery of gradeable issues in an existing codebase
 - Depends on: [Grading Methodology](./grading-methodology.md) `1.1.0`
-- Related: [Multi-Agent Review Agreement](./multi-agent-review-agreement.md) `1.0.0`
+- Related: [Covenant skill](https://github.com/marcelsud/skills/blob/main/covenant/SKILL.md)
 - Primary objective: produce a sustained supply of eligible, evidence-backed issues without
   re-discovering resolved findings and without fabricating work
 
