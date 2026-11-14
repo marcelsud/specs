@@ -7,7 +7,7 @@
 - Status: Draft
 - Applies to: automated and semi-automated discovery of gradeable issues in an existing codebase
 - Depends on: [Grading Methodology](./grading-methodology.md) `1.1.0`
-- Related: [Multi-Agent Review Agreement](./multi-agent-review-agreement.md) `1.0.0`
+- Related: [Covenant skill](https://github.com/marcelsud/skills/blob/main/covenant/SKILL.md)
 - Primary objective: produce a sustained supply of eligible, evidence-backed issues without
   re-discovering resolved findings and without fabricating work
 
@@ -438,9 +438,9 @@ a run. An explicitly named topic MUST still record a topic-history entry.
 - **Grading Methodology `1.1.0`** — supplies the eligibility gate (IE-1..IE-9), severity, value
   grades, consequence categories, and the issue record. This specification adds only the
   conditions under which a candidate may reach that gate.
-- **Multi-Agent Review Agreement `1.0.0`** — governs review of the pull requests that resolve
-  filed issues. It does not apply to audit runs: the severity gate and two-round cap concern
-  convergence between reviewers, whereas an audit run has no counterparty.
+- Use the [Covenant skill](https://github.com/marcelsud/skills/blob/main/covenant/SKILL.md)
+  to review pull requests that resolve filed issues. Its severity criteria and two-round
+  limit apply to reviewer exchanges, not audit runs. An audit run has no counterparty.
 
 This specification defines issue **supply**. It does not define how filed issues are
 implemented, reviewed, or merged.
